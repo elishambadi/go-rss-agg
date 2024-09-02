@@ -12,13 +12,30 @@ import (
 	"github.com/google/uuid"
 )
 
-const getFeedsByUser = `-- name: GetFeedsByUser :one
-
-SELECT id, created_at, updated_at, name, url, user_id from feeds where user_id = $1
+const createFeed = `-- name: CreateFeed :one
+INSERT INTO feeds (id, created_at, updated_at, name, url, user_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, created_at, updated_at, name, url, user_id
 `
 
-func (q *Queries) GetFeedsByUser(ctx context.Context, userID uuid.NullUUID) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, getFeedsByUser, userID)
+type CreateFeedParams struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Name      string
+	Url       string
+	UserID    uuid.UUID
+}
+
+func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
+	row := q.db.QueryRowContext(ctx, createFeed,
+		arg.ID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.Name,
+		arg.Url,
+		arg.UserID,
+	)
 	var i Feed
 	err := row.Scan(
 		&i.ID,
@@ -31,30 +48,13 @@ func (q *Queries) GetFeedsByUser(ctx context.Context, userID uuid.NullUUID) (Fee
 	return i, err
 }
 
-const createFeed = `-- name: createFeed :one
-INSERT INTO feeds (id, created_at, updated_at, name, url, user_id)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, created_at, updated_at, name, url, user_id
+const getFeedsByUser = `-- name: GetFeedsByUser :one
+
+SELECT id, created_at, updated_at, name, url, user_id from feeds where user_id = $1
 `
 
-type createFeedParams struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Name      string
-	Url       string
-	UserID    uuid.NullUUID
-}
-
-func (q *Queries) createFeed(ctx context.Context, arg createFeedParams) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, createFeed,
-		arg.ID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.Name,
-		arg.Url,
-		arg.UserID,
-	)
+func (q *Queries) GetFeedsByUser(ctx context.Context, userID uuid.UUID) (Feed, error) {
+	row := q.db.QueryRowContext(ctx, getFeedsByUser, userID)
 	var i Feed
 	err := row.Scan(
 		&i.ID,
