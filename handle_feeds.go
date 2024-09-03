@@ -129,3 +129,23 @@ func (apiCfg *apiConfig) handlerDeleteFeedFollow(w http.ResponseWriter, r *http.
 
 	respondWithJSON(w, 200, struct{}{})
 }
+
+func (apiCfg *apiConfig) handlerDeleteFeed(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedIDStr := chi.URLParam(r, "feedId")
+	feedID, err := uuid.Parse(feedIDStr)
+	if err != nil {
+		respondWithError(w, 400, "Couldn't parse Feed ID")
+		return
+	}
+
+	err = apiCfg.DB.DeleteFeed(r.Context(), database.DeleteFeedParams{
+		ID:     feedID,
+		UserID: user.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, 500, fmt.Sprintf("Couldn't delete feed: %v", err))
+	}
+
+	respondWithJSON(w, 200, struct{}{})
+}
